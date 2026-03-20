@@ -10,4 +10,5 @@ export interface Negotiation {
   vehicles: Vehicle[];
   totalTax: number;
   userProfit: number;
+  commercialCenterProfit: number;
 }

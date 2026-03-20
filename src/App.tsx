@@ -33,6 +33,7 @@ export default function App() {
   const [history, setHistory] = useState<Negotiation[]>([]);
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [showConfirmClear, setShowConfirmClear] = useState(false);
 
   // Load data
   useEffect(() => {
@@ -84,6 +85,7 @@ export default function App() {
       const negDateStr = negDate.toISOString().split('T')[0];
 
       acc.total += neg.userProfit;
+      acc.commercialTotal += neg.commercialCenterProfit || (neg.totalTax * 0.5);
       
       if (negDateStr === today) {
         acc.today += neg.userProfit;
@@ -94,7 +96,7 @@ export default function App() {
       }
 
       return acc;
-    }, { today: 0, week: 0, total: 0 });
+    }, { today: 0, week: 0, total: 0, commercialTotal: 0 });
   }, [history]);
 
   // Handlers
@@ -117,6 +119,7 @@ export default function App() {
       vehicles: [...currentVehicles],
       totalTax: currentTotalTax,
       userProfit: currentUserProfit,
+      commercialCenterProfit: currentTotalTax * 0.5,
     };
 
     setHistory([newNegotiation, ...history]);
@@ -125,6 +128,11 @@ export default function App() {
 
   const clearCurrent = () => {
     setCurrentVehicles([]);
+  };
+
+  const clearHistory = () => {
+    setHistory([]);
+    setShowConfirmClear(false);
   };
 
   const formatCurrency = (value: number) => {
@@ -187,7 +195,7 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
         {/* Financial Summary Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -229,6 +237,21 @@ export default function App() {
             <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-1">Total Acumulado</p>
             <h3 className="text-3xl font-black glow-cyan text-brand-cyan">
               {formatCurrency(totals.total)}
+            </h3>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="card-premium relative overflow-hidden group"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Car size={64} />
+            </div>
+            <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-1">Centro Comercial</p>
+            <h3 className="text-3xl font-black text-white/80">
+              {formatCurrency(totals.commercialTotal)}
             </h3>
           </motion.div>
         </section>
@@ -339,18 +362,22 @@ export default function App() {
 
                 {/* Summary & Actions */}
                 <div className="pt-6 border-t border-white/5 flex flex-col md:flex-row gap-6 items-center justify-between">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-12 w-full md:w-auto">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 w-full md:w-auto">
                     <div>
                       <p className="text-[10px] text-white/40 uppercase font-black tracking-widest mb-1">Taxa Total</p>
-                      <p className="text-lg md:text-xl font-bold">{formatCurrency(currentTotalTax)}</p>
+                      <p className="text-lg font-bold">{formatCurrency(currentTotalTax)}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-white/40 uppercase font-black tracking-widest mb-1">Divisão (2 Clientes)</p>
-                      <p className="text-lg md:text-xl font-bold text-white/80">{formatCurrency(currentTotalTax / 2)}</p>
+                      <p className="text-lg font-bold text-white/80">{formatCurrency(currentTotalTax / 2)}</p>
                     </div>
-                    <div className="col-span-2 md:col-span-1">
+                    <div>
+                      <p className="text-[10px] text-white/40 uppercase font-black tracking-widest mb-1">Centro Comercial (50%)</p>
+                      <p className="text-lg font-bold text-white/80">{formatCurrency(currentTotalTax * 0.5)}</p>
+                    </div>
+                    <div>
                       <p className="text-[10px] text-brand-cyan uppercase font-black tracking-widest mb-1">Seu Lucro (50%)</p>
-                      <p className="text-2xl font-black text-brand-cyan glow-cyan">{formatCurrency(currentUserProfit)}</p>
+                      <p className="text-xl font-black text-brand-cyan glow-cyan">{formatCurrency(currentUserProfit)}</p>
                     </div>
                   </div>
 
@@ -384,8 +411,40 @@ export default function App() {
                   </div>
                   <h2 className="text-xl font-bold">Histórico de Negociações</h2>
                 </div>
-                <div className="px-3 py-1 bg-white/5 rounded-full border border-white/10">
-                  <span className="text-xs font-bold text-white/50">{history.length} Negociações Feitas</span>
+                <div className="flex items-center gap-3">
+                  <div className="px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                    <span className="text-xs font-bold text-white/50">{history.length} Negociações Feitas</span>
+                  </div>
+                  
+                  {history.length > 0 && (
+                    <div className="relative">
+                      {!showConfirmClear ? (
+                        <button 
+                          onClick={() => setShowConfirmClear(true)}
+                          className="p-1.5 text-white/20 hover:text-red-400 transition-colors rounded-lg hover:bg-red-400/10"
+                          title="Limpar Histórico"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg p-1 animate-in fade-in zoom-in duration-200">
+                          <span className="text-[10px] font-bold text-red-400 px-2 uppercase tracking-tighter">Apagar tudo?</span>
+                          <button 
+                            onClick={clearHistory}
+                            className="p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                          >
+                            <CheckCircle2 size={14} />
+                          </button>
+                          <button 
+                            onClick={() => setShowConfirmClear(false)}
+                            className="p-1 bg-white/10 text-white/60 rounded hover:bg-white/20 transition-colors"
+                          >
+                            <XCircle size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -396,7 +455,8 @@ export default function App() {
                       <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Data / Hora</th>
                       <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Veículos</th>
                       <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Taxa Total</th>
-                      <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30 text-right">Lucro</th>
+                      <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Centro Comercial</th>
+                      <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30 text-right">Seu Lucro</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -422,6 +482,9 @@ export default function App() {
                         </td>
                         <td className="py-4">
                           <span className="text-sm font-medium text-white/80">{formatCurrency(neg.totalTax)}</span>
+                        </td>
+                        <td className="py-4">
+                          <span className="text-sm font-medium text-white/40">{formatCurrency(neg.commercialCenterProfit || (neg.totalTax * 0.5))}</span>
                         </td>
                         <td className="py-4 text-right">
                           <span className="text-sm font-black text-brand-cyan">{formatCurrency(neg.userProfit)}</span>
